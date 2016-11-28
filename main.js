@@ -113,30 +113,18 @@ function firstInstallTour(win) {
 
     let xpos;
     let outerRect = {};
+    let starttime;
 
-    //TODO: ensure this is animating quickly enough by using timestamps too
-    let movePanelToFind = () => {
-      xpos -= 2;
-      panel.moveTo(xpos, outerRect.y);
-      //move amount of pixels center of find-input is away from center of pin-button
-      if (xpos > outerRect.x - 104) {
-        win.requestAnimationFrame(movePanelToFind);
-      } else {
-        outerbox.style.opacity = '1';
-        tourTitle.textContent = 'Find That Tab';
-      }
-    };
-
-    let movePanelToTop = () => {
-      xpos += 2;
-      panel.moveTo(xpos, outerRect.y);
-      //move amount of pixels center of top-tabs-button is away from center of find-input
-      if (xpos < outerRect.x + 69) {
-        win.requestAnimationFrame(movePanelToTop);
-      } else {
-        outerbox.style.opacity = '1';
-        tourTitle.textContent = 'Easy In, Easy Out';
-        progressButton.setAttribute('label', 'Got it!');
+    let movePanel = function (timestamp, panel, dist, duration) {
+      let runtime = timestamp - starttime;
+      let progress = runtime / duration;
+      progress = Math.min(progress, 1);
+      win.console.log('xpos: ' + xpos, 'dist: ' + dist, 'progress: ' + progress);
+      panel.moveTo(xpos + (dist * progress), outerRect.y);
+      if (runtime < duration){
+        win.requestAnimationFrame(function (timestamp) {
+          movePanel(timestamp, panel, dist, duration);
+        });
       }
     };
 
@@ -153,13 +141,28 @@ function firstInstallTour(win) {
         outerbox.style.opacity = '0';
         outerRect = panel.getOuterScreenRect();
         xpos = outerRect.x;
-        win.requestAnimationFrame(movePanelToFind);
+        win.requestAnimationFrame(function (timestamp) {
+          starttime = timestamp;
+          movePanel(timestamp, panel, -104, 500);
+          win.setTimeout(function () {
+            outerbox.style.opacity = '1';
+            tourTitle.textContent = 'Find That Tab';
+          }, 250);
+        });
 
         progressButton.onclick = (e) => {
           outerbox.style.opacity = '0';
           outerRect = panel.getOuterScreenRect();
           xpos = outerRect.x;
-          win.requestAnimationFrame(movePanelToTop);
+          win.requestAnimationFrame(function (timestamp) {
+            starttime = timestamp;
+            movePanel(timestamp, panel, 69, 500);
+            win.setTimeout(function () {
+              outerbox.style.opacity = '1';
+              tourTitle.textContent = 'Easy In, Easy Out';
+              progressButton.setAttribute('label', 'Got it!');
+            }, 250);
+          });
 
           progressButton.onclick = (e) => {
             panel.hidePopup();
